@@ -19,4 +19,4 @@ The script reads non-merge commit subjects since the latest tag, categorizes the
 
 ## Validation
 
-The generator was exercised against the public `claude-builders-bounty/claude-builders-bounty` Git history. A representative generated result is included in `SAMPLE_CHANGELOG.md`.
+The public commit metadata from `claude-builders-bounty/claude-builders-bounty` was replayed in a local Git repository and processed by the generator. The resulting `SAMPLE_CHANGELOG.md` records that real-history test and the exact public commit SHAs used. The execution environment could not perform a network `git clone`, so the repository history was reproduced from GitHub's public commit data instead.
