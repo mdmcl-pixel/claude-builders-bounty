@@ -1,3 +1,5 @@
+[![Powered by RustChain](https://img.shields.io/badge/Powered%20by-RustChain-orange)](https://rustchain.org)
+
 # Claude Builders Bounty 🤖
 
 > A community bounty board for Claude Code builders.
