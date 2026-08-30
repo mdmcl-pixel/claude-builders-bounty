@@ -1,0 +1,147 @@
+{
+  "name": "Weekly GitHub Dev Summary",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "weeks", "triggerAtDay": [5], "triggerAtHour": 17 }]
+        }
+      },
+      "id": "schedule",
+      "name": "Friday 5pm",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "repo", "name": "repo", "value": "owner/repository", "type": "string" },
+            { "id": "language", "name": "language", "value": "EN", "type": "string" },
+            { "id": "destination", "name": "destination", "value": "Slack", "type": "string" }
+          ]
+        }
+      },
+      "id": "config",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/{{$json.repo}}/commits?since={{$now.minus({days: 7}).toISO()}}",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [
+          { "name": "Authorization", "value": "=Bearer {{$env.GITHUB_TOKEN}}" },
+          { "name": "Accept", "value": "application/vnd.github+json" }
+        ] },
+        "options": {}
+      },
+      "id": "commits",
+      "name": "Fetch commits",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, -180]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/{{$('Config').item.json.repo}}/issues?state=closed&since={{$now.minus({days: 7}).toISO()}}&per_page=100",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [
+          { "name": "Authorization", "value": "=Bearer {{$env.GITHUB_TOKEN}}" },
+          { "name": "Accept", "value": "application/vnd.github+json" }
+        ] },
+        "options": {}
+      },
+      "id": "issues",
+      "name": "Fetch closed issues",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/repos/{{$('Config').item.json.repo}}/pulls?state=closed&sort=updated&direction=desc&per_page=100",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [
+          { "name": "Authorization", "value": "=Bearer {{$env.GITHUB_TOKEN}}" },
+          { "name": "Accept", "value": "application/vnd.github+json" }
+        ] },
+        "options": {}
+      },
+      "id": "prs",
+      "name": "Fetch closed PRs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 180]
+    },
+    {
+      "parameters": {
+        "jsCode": "const commits = $('Fetch commits').all().map(i => i.json);\nconst issues = $('Fetch closed issues').all().map(i => i.json).filter(x => !x.pull_request);\nconst cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;\nconst prs = $('Fetch closed PRs').all().map(i => i.json).filter(x => x.merged_at && new Date(x.merged_at).getTime() >= cutoff);\nconst cfg = $('Config').first().json;\nreturn [{ json: { ...cfg, commits, issues, prs } }];"
+      },
+      "id": "combine",
+      "name": "Build activity payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [
+          { "name": "x-api-key", "value": "={{$env.ANTHROPIC_API_KEY}}" },
+          { "name": "anthropic-version", "value": "2023-06-01" },
+          { "name": "content-type", "value": "application/json" }
+        ] },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1200, messages: [{ role: 'user', content: `Write a concise weekly development summary in ${$json.language}. Highlight meaningful commits, closed issues, merged PRs, risks, and next steps. Do not invent activity. Repository: ${$json.repo}\\n\\nActivity JSON:\\n${JSON.stringify({commits:$json.commits,issues:$json.issues,prs:$json.prs})}` }] }) }}",
+        "options": {}
+      },
+      "id": "claude",
+      "name": "Generate summary with Claude",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.SLACK_WEBHOOK_URL}}",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ text: $json.content?.[0]?.text || 'No summary returned.' }) }}",
+        "options": {}
+      },
+      "id": "slack",
+      "name": "Send to Slack",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 0]
+    }
+  ],
+  "connections": {
+    "Friday 5pm": { "main": [[{ "node": "Config", "type": "main", "index": 0 }]] },
+    "Config": { "main": [[
+      { "node": "Fetch commits", "type": "main", "index": 0 },
+      { "node": "Fetch closed issues", "type": "main", "index": 0 },
+      { "node": "Fetch closed PRs", "type": "main", "index": 0 }
+    ]] },
+    "Fetch commits": { "main": [[{ "node": "Build activity payload", "type": "main", "index": 0 }]] },
+    "Fetch closed issues": { "main": [[{ "node": "Build activity payload", "type": "main", "index": 0 }]] },
+    "Fetch closed PRs": { "main": [[{ "node": "Build activity payload", "type": "main", "index": 0 }]] },
+    "Build activity payload": { "main": [[{ "node": "Generate summary with Claude", "type": "main", "index": 0 }]] },
+    "Generate summary with Claude": { "main": [[{ "node": "Send to Slack", "type": "main", "index": 0 }]] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "11111111-2222-4333-8444-555555555555",
+  "meta": { "templateCredsSetupCompleted": false },
+  "tags": []
+}
