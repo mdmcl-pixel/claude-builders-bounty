@@ -22,3 +22,15 @@ Commits are grouped into `Added`, `Fixed`, `Changed`, and `Removed`. Conventiona
 ## Validation
 
 The sample output in `SAMPLE_CHANGELOG.md` is based on the real GitHub repository `claude-builders-bounty/claude-builders-bounty`. Its observed history included `feat: initial README with bounty board` and `Initial commit`, which map to `Added` and `Changed` respectively.
+
+
+## Verification (2026-09-23)
+
+Fresh validation against this submitted branch using Git for Windows Bash:
+
+```text
+bash ./changelog.sh
+Wrote CHANGELOG.md (5 commits processed).
+```
+
+The generated `CHANGELOG.md` was created successfully. GitHub comparison also reported this branch mergeable and 0 commits behind the current base when checked. AI assistance was used; this does not assert merge, acceptance, or payment.
