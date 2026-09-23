@@ -54,3 +54,22 @@ The command exits non-zero when:
 - confidence is not `Low`, `Medium`, or `High`.
 
 No shell interpolation is used for the PR URL or diff.
+
+
+## Verification (2026-09-23)
+
+Fresh validation against this submitted branch on Windows/Python 3.12:
+
+```text
+python pr-reviewer/test_claude_review.py
+....
+----------------------------------------------------------------------
+Ran 4 tests in 0.000s
+
+OK
+
+python -m py_compile claude-review pr-reviewer/test_claude_review.py
+# passed
+```
+
+GitHub comparison also reported this branch mergeable and 0 commits behind the current base when checked. AI assistance was used; the results above were actually executed, and do not assert merge, acceptance, or payment.
