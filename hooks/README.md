@@ -37,3 +37,19 @@ cd hooks && python3 -m unittest -v test_block_destructive.py
 ```
 
 The tests cover all required destructive patterns, normal commands, safe `DELETE ... WHERE ...`, and a multi-statement SQL case where a `WHERE` in one statement must not mask a destructive delete in another.
+
+
+## Verification (2026-09-23)
+
+Fresh validation against this submitted branch on Windows/Python 3.12:
+
+```text
+python hooks/test_block_destructive.py
+...
+----------------------------------------------------------------------
+Ran 3 tests in 0.000s
+
+OK
+```
+
+GitHub comparison also reported this branch mergeable and 0 commits behind the current base when checked. AI assistance was used; the test result above was actually executed, and does not assert merge, acceptance, or payment.
